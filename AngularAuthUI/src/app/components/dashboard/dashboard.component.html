@@ -1,0 +1,413 @@
+<div class="container mt-5">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <ng-container *ngIf="role === 'admin'">
+        <h2 class="page-title">Tipuri adeverințe</h2>
+      </ng-container>
+      <ng-container *ngIf="role === 'secretar'">
+        <h2 class="page-title">Cereri Adeverințe</h2>
+      </ng-container>
+      <ng-container *ngIf="role === 'student'">
+        <h2 class="page-title">Adeverințele Tale</h2>
+      </ng-container>
+    </div>
+    <div class="user-info">
+      <i class="bi bi-person-circle user-icon"></i>
+      <span class="user-email">{{ email }}</span>
+      <div class="dropdown">
+        <i class="dropdown-toggle" (click)="toggleDropdown()"></i>
+        <div class="dropdown-menu dropdown-menu-right" [class.show]="isDropdownOpen">
+          <a class="dropdown-item logout-btn" (click)="logout()">
+            <i class="bi bi-box-arrow-right logout-icon"></i> Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="role === 'admin'">
+    <div>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <select class="form-control w-25" id="specializare" [(ngModel)]="selectedSpecialization"
+          (ngModelChange)="filterTemplates()">
+          <option value="">Toate Specializările</option>
+          <option *ngFor="let specialization of specializations" [value]="specialization">{{ specialization }}</option>
+        </select>
+        <button class="btn btn-primary" (click)="showAddTemplateForm()">Adaugă tip nou</button>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Tip Adeverință</th>
+            <th>Data Încărcării</th>
+            <th>Data Actualizării</th>
+            <th>Specializări</th>
+            <th class="center-align">Acțiuni</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let template of filteredTemplates">
+            <td>{{ template.name }}</td>
+            <td>{{ template.createDate | date: 'short' }}</td>
+            <td>{{ template.updateDate | date: 'short' }}</td>
+            <td>{{ template.specializations.join(', ') }}</td>
+            <td>
+              <div class="d-flex align-items-center">
+                <span class="icon-text-pair">
+                  <i class="bi bi-eye"></i>
+                  <button class="btn btn-link p-0 ml-1" (click)="showViewTemplateForm(template)">Vizualizare</button>
+                </span>
+                <span class="icon-text-pair ml-2">
+                  <i class="bi bi-download"></i>
+                  <a href="#" (click)="downloadTemplate($event, template.filePath)"
+                    class="btn btn-link p-0 ml-1">Descarcare</a>
+                </span>
+                <span class="icon-text-pair ml-2">
+                  <i class="bi bi-pencil"></i>
+                  <button class="btn btn-link p-0 ml-1" (click)="showEditTemplateForm(template)">Editare</button>
+                </span>
+                <span class="icon-text-pair ml-2">
+                  <i class="bi bi-trash"></i>
+                  <button class="btn btn-link text-danger p-0 ml-1"
+                    (click)="deleteTemplate(template.templateID)">Șterge</button>
+                </span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="isViewTemplateFormVisible" class="modal" (click)="hideViewTemplateForm()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <span class="close" (click)="hideViewTemplateForm()">&times;</span>
+          <h3>Vizualizare Template</h3>
+          <div [innerHTML]="currentTemplate.fileContent" class="template-view"></div>
+        </div>
+      </div>
+
+      <div *ngIf="isEditTemplateFormVisible" class="modal" (click)="hideEditTemplateForm()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <span class="close" (click)="hideEditTemplateForm()">&times;</span>
+          <h3>Editare Template</h3>
+          <form (ngSubmit)="submitEditTemplate()">
+            <div class="form-group">
+              <label for="edit-name">Introduceti denumirea tipului de adeverință</label>
+              <input type="text" class="form-control" id="edit-name" [(ngModel)]="editTemplate.name" name="edit-name"
+                required>
+            </div>
+            <div class="form-group">
+              <label for="edit-specializations">Specializarea ce poate utiliza acest tip de adeverință</label>
+              <input type="text" class="form-control" id="edit-specializations"
+                [(ngModel)]="editTemplate.specializations" name="edit-specializations" required>
+            </div>
+            <div class="form-group">
+              <label for="edit-file">Încărcați documentul template al tipului de adeverință</label>
+              <input type="file" class="form-control" id="edit-file" (change)="onEditFileChange($event)">
+            </div>
+            <div class="form-group">
+              <label>Date dorite de la student:</label>
+              <div *ngFor="let field of editTemplate.fields; let i = index; trackBy: trackByIndex"
+                class="d-flex align-items-center mb-2">
+                <input type="text" class="form-control mr-2" [(ngModel)]="editTemplate.fields[i]" name="edit-field{{i}}"
+                  required>
+                <button type="button" class="btn btn-danger" (click)="removeFieldEdit(i)">-</button>
+              </div>
+              <button type="button" class="btn btn-primary" (click)="addFieldEdit()">+</button>
+            </div>
+            <div class="form-buttons">
+              <button type="submit" class="btn btn-success">Salvează</button>
+              <button type="button" class="btn btn-secondary" (click)="hideEditTemplateForm()">Înapoi</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div *ngIf="isAddTemplateFormVisible" class="modal" (click)="hideAddTemplateForm()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <span class="close" (click)="hideAddTemplateForm()">&times;</span>
+          <h3>Adaugă tip nou de adeverință</h3>
+          <form (ngSubmit)="submitTemplate()">
+            <div class="form-group">
+              <label for="name">Introduceti denumirea tipului de adeverință</label>
+              <input type="text" class="form-control" id="name" [(ngModel)]="newTemplate.name" name="name" required>
+            </div>
+            <div class="form-group">
+              <label for="specializations">Specializarea ce poate utiliza acest tip de adeverință</label>
+              <input type="text" class="form-control" id="specializations" [(ngModel)]="newTemplate.specializations"
+                name="specializations" required>
+            </div>
+            <div class="form-group">
+              <label for="file">Încărcați documentul template al tipului de adeverință</label>
+              <input type="file" class="form-control" id="file" (change)="onFileChange($event)" required>
+            </div>
+            <div class="form-group">
+              <label>Date dorite de la student:</label>
+              <div *ngFor="let field of newTemplate.fields; let i = index; trackBy: trackByIndex"
+                class="d-flex align-items-center mb-2">
+                <input type="text" class="form-control mr-2" [(ngModel)]="newTemplate.fields[i]" name="field{{i}}"
+                  required>
+                <button type="button" class="btn btn-danger" (click)="removeField(i)">-</button>
+              </div>
+              <button type="button" class="btn btn-primary" (click)="addField()">+</button>
+            </div>
+            <div class="form-buttons">
+              <button type="submit" class="btn btn-success">Finalizează</button>
+              <button type="button" class="btn btn-secondary" (click)="hideAddTemplateForm()">Înapoi</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="role === 'secretar'">
+    <div>
+      <div class="d-flex mb-3">
+        <select class="form-control w-15 mr-2" id="facultate" (change)="filterByFaculty(facultateSelect.value)"
+          #facultateSelect>
+          <option value="">Facultate</option>
+          <option *ngFor="let faculty of student_faculty" [value]="faculty">{{faculty}}</option>
+        </select>
+        <select class="form-control w-15 mr-2" id="specializare"
+          (change)="filterBySpecialization(specializareSelect.value)" #specializareSelect>
+          <option value="">Specializare</option>
+          <option *ngFor="let specialization of student_specializations" [value]="specialization">{{specialization}}
+          </option>
+        </select>
+        <select class="form-control w-10 mr-2" id="an" (change)="filterByYear(anSelect.value)" #anSelect>
+          <option value="">An</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+        <input type="text" class="form-control ml-auto w-30" placeholder="Căutare dupa nume" aria-label="Căutare"
+          [(ngModel)]="searchQuery" (ngModelChange)="filterRequestsByName(searchQuery)">
+      </div>
+      <div class="mb-3 d-flex justify-content-start">
+        <button class="btn btn-secondary mr-2"
+          [ngClass]="{'btn-secondary': selectedFilter !== 'In asteptare', 'btn-primary': selectedFilter === 'In asteptare'}"
+          (click)="filterRequests('In asteptare')">În Așteptare</button>
+        <button class="btn btn-secondary mr-2"
+          [ngClass]="{'btn-secondary': selectedFilter !== 'Refuzat', 'btn-primary': selectedFilter === 'Refuzat'}"
+          (click)="filterRequests('Refuzat')">Refuzate</button>
+        <button class="btn btn-secondary mr-2"
+          [ngClass]="{'btn-secondary': selectedFilter !== 'Acceptat', 'btn-primary': selectedFilter === 'Acceptat'}"
+          (click)="filterRequests('Acceptat')">Acceptate</button>
+      </div>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Id</th>
+            <th>Nume student</th>
+            <th class="text-center">Facultate</th>
+            <th class="text-center">Specializare</th>
+            <th class="text-center">An</th>
+            <th>Motiv Eliberare</th>
+            <th class="center-align">Acțiuni</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let request of filteredRequests | paginate: { itemsPerPage: 8, currentPage: page }">
+            <td>{{ request.id }}</td>
+            <td>{{ request.StudentName }}</td>
+            <td class="text-center">{{ request.StudentFaculty }}</td>
+            <td class="text-center">{{ request.StudentSpecialization }}</td>
+            <td class="text-center">{{ request.an }}</td>
+            <td>{{ request.reason }}</td>
+            <td>
+              <div class="d-flex align-items-center">
+                <span class="icon-text-pair">
+                  <i class="bi bi-eye"></i><button class="btn btn-link p-0 ml-1"
+                    (click)="showViewCompletedCertificateForm(request.filePath)">Vizualizare</button>
+                </span>
+                <ng-container *ngIf="request.status === 'In asteptare'">
+                  <span class="icon-text-pair ml-2">
+                    <i class="bi bi-pencil"></i><button class="btn btn-link p-0 ml-1"
+                      (click)="showEditResponseForm(request)">Editare</button>
+                  </span>
+                  <span class="icon-text-pair ml-2">
+                    <i class="bi bi-check-circle"></i><button class="btn btn-link p-0 ml-1"
+                      (click)="acceptRequest(request.id)">Acceptare</button>
+                  </span>
+                  <span class="icon-text-pair ml-2">
+                    <i class="bi bi-x-circle"></i><button class="btn btn-link p-0 ml-1"
+                      (click)="refuseRequest(request.id)">Refuzare</button>
+                  </span>
+                </ng-container>
+                <ng-container *ngIf="request.status === 'Acceptat'">
+                  <span class="icon-text-pair ml-2">
+                    <i class="bi bi-printer"></i><button class="btn btn-link p-0 ml-1"
+                      (click)="printRequest(request.filePath)">Printare</button>
+                  </span>
+                </ng-container>
+                <ng-container *ngIf="request.status === 'Refuzat'">
+                  <span class="icon-text-pair ml-2">
+                    <i class="bi bi-arrow-left-circle"></i>
+                    <button class="btn btn-link p-0 ml-1" (click)="revertRequest(request.id)">Inapoi</button>
+                  </span>
+                </ng-container>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="d-flex justify-content-center mt-3">
+        <nav aria-label="Page navigation">
+          <ul class="pagination">
+            <li class="page-item" [class.disabled]="currentPage === 1">
+              <button class="page-link" (click)="changePage(currentPage - 1)">&laquo; Previous</button>
+            </li>
+            <li class="page-item" *ngFor="let page of [].constructor(totalPages); let i = index"
+              [class.active]="i + 1 === currentPage">
+              <button class="page-link" (click)="changePage(i + 1)">{{ i + 1 }}</button>
+            </li>
+            <li class="page-item" [class.disabled]="currentPage === totalPages">
+              <button class="page-link" (click)="changePage(currentPage + 1)">Next &raquo;</button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <div *ngIf="isViewCompletedCertificateFormVisible" class="modal" (click)="hideViewCompletedCertificateForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <span class="close" (click)="hideViewCompletedCertificateForm()">&times;</span>
+        <h3>Vizualizare Adeverință Completată</h3>
+        <div [innerHTML]="currentCompletedCertificateContent" class="certificate-view"></div>
+      </div>
+    </div>
+
+    <div *ngIf="isEditResponseFormVisible" class="modal" (click)="hideEditResponseForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <span class="close" (click)="hideEditResponseForm()">&times;</span>
+        <h3>Editare Adeverință Completată</h3>
+        <div>
+          <div *ngFor="let key of getKeys(editResponseData.responses)">
+            <label>{{ key }}:</label>
+            <input class="form-control" [(ngModel)]="editResponseData.responses[key]" />
+          </div>
+          <label>Motiv Eliberare:</label>
+          <input class="form-control" [(ngModel)]="editResponseData.reason" />
+          <button class="btn btn-primary mt-3" (click)="submitEditResponse()">Salvează</button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="role === 'student'">
+    <div>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <input type="text" class="form-control search-bar student-search-bar" placeholder="Caută după tipul de adeverință"
+          [(ngModel)]="searchText" (ngModelChange)="onSearchTextChanged()">
+        <button class="btn btn-primary search-button" (click)="cerereNouaAdeverinta()">Cere o nouă adeverință</button>
+      </div>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Id</th>
+            <th>Tip Adeverință</th>
+            <th>Motiv Eliberare</th>
+            <th>Data Emiterii Cererii</th>
+            <th>Status</th>
+            <th class="center-align">Acțiuni</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let adeverinta of adeverinte">
+            <td>{{ adeverinta.id }}</td>
+            <td>{{ adeverinta.templateName }}</td>
+            <td>{{ adeverinta.reason }}</td>
+            <td>{{ adeverinta.responseDate | date: 'short' }}</td>
+            <td>{{ adeverinta.status }}</td>
+            <td>
+              <div class="d-flex align-items-center">
+                <span class="icon-text-pair">
+                  <i class="bi bi-eye"></i>
+                  <button class="btn btn-link p-0 ml-1"
+                    (click)="showViewCompletedCertificateForm(adeverinta.filePath)">Vizualizare</button>
+                </span>
+                <span class="icon-text-pair ml-2">
+                  <i class="bi bi-download"></i>
+                  <a href="#" (click)="downloadAdeverinta($event, adeverinta.filePath)"
+                    class="btn btn-link p-0 ml-1">Descarcare</a>
+                </span>
+                <span class="icon-text-pair ml-2">
+                  <i class="bi bi-pencil"></i>
+                  <button class="btn btn-link p-0 ml-2"
+                    [ngClass]="{'disabled-btn': adeverinta.status !== 'In asteptare'}"
+                    [attr.disabled]="adeverinta.status !== 'In asteptare' ? true : null"
+                    (click)="showEditResponseForm(adeverinta)">Editare</button>
+                </span>
+                <span class="icon-text-pair ml-2">
+                  <i class="bi bi-trash"></i>
+                  <button class="btn btn-link text-danger p-0 ml-2"
+                    [ngClass]="{'disabled-btn': adeverinta.status !== 'In asteptare'}"
+                    [attr.disabled]="adeverinta.status !== 'In asteptare' ? true : null"
+                    (click)="deleteStudentResponse(adeverinta.id)">Șterge</button>
+                </span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="isRequestFormVisible" class="modal" (click)="hideRequestForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <span class="close" (click)="hideRequestForm()">&times;</span>
+        <h3>Selectează tipul de adeverință</h3>
+        <select class="form-control" [(ngModel)]="selectedTemplateId">
+          <option [value]="null">Tip adeverință</option>
+          <option *ngFor="let template of templates" [value]="template.templateID">{{ template.name }}</option>
+        </select>
+        <button class="btn btn-primary mt-3" [disabled]="!selectedTemplateId"
+          (click)="selectTemplate(selectedTemplateId!)">Completează adeverința</button>
+      </div>
+    </div>
+
+
+    <div *ngIf="isFillCertificateFormVisible" class="modal" (click)="hideFillCertificateForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <span class="close" (click)="hideFillCertificateForm()">&times;</span>
+        <h3>Completare adeverință</h3>
+        <form (ngSubmit)="submitCertificate()">
+          <div *ngFor="let field of getCurrentTemplateFields()" class="form-group">
+            <label [for]="field">{{ field }}</label>
+            <input type="text" class="form-control" [id]="field" [(ngModel)]="formData.fields[field]" [name]="field"
+              required>
+          </div>
+          <div class="form-group">
+            <label for="reason">Motiv eliberare</label>
+            <input type="text" class="form-control" id="reason" [(ngModel)]="formData.reason" name="reason" required>
+          </div>
+          <button type="submit" class="btn btn-success submit-button">Trimite adeverința</button>
+        </form>
+      </div>
+    </div>
+
+    <div *ngIf="isViewCompletedCertificateFormVisible" class="modal" (click)="hideViewCompletedCertificateForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <span class="close" (click)="hideViewCompletedCertificateForm()">&times;</span>
+        <h3>Vizualizare Adeverință Completată</h3>
+        <div [innerHTML]="currentCompletedCertificateContent" class="certificate-view"></div>
+      </div>
+    </div>
+
+    <div *ngIf="isEditResponseFormVisible" class="modal" (click)="hideEditResponseForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <span class="close" (click)="hideEditResponseForm()">&times;</span>
+        <h3>Editare Adeverință Completată</h3>
+        <div>
+          <div *ngFor="let key of getKeys(editResponseData.responses)">
+            <label>{{ key }}:</label>
+            <input class="form-control" [(ngModel)]="editResponseData.responses[key]" />
+          </div>
+          <label>Motiv Eliberare:</label>
+          <input class="form-control" [(ngModel)]="editResponseData.reason" />
+          <button class="btn btn-primary mt-3" (click)="submitEditResponse()">Salvează</button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
