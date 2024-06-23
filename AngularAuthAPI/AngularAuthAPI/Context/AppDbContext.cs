@@ -13,6 +13,7 @@ namespace AngularAuthAPI.Context
 
         public DbSet<User> Users { get; set; }
         public DbSet<Template> Templates { get; set; }
+        public DbSet<StudentResponse> StudentResponses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -38,6 +39,21 @@ namespace AngularAuthAPI.Context
                     v => v.Split(',', StringSplitOptions.RemoveEmptyEntries))
                 .Metadata.SetValueComparer(stringArrayComparer);
 
+            
+            modelBuilder.Entity<StudentResponse>().ToTable("student_responses");
+            modelBuilder.Entity<StudentResponse>()
+                .Property(s => s.Responses)
+                .HasColumnType("jsonb");
+
+            modelBuilder.Entity<StudentResponse>()
+                .HasOne(s => s.Template)
+                .WithMany()
+                .HasForeignKey(s => s.TemplateID);
+
+            modelBuilder.Entity<StudentResponse>()
+                .HasOne(s => s.Student)
+                .WithMany()
+                .HasForeignKey(s => s.StudentID);
         }
     }
 }

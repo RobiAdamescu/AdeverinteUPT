@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Cryptography;
 using AngularAuthAPI.Models.Dto;
+using DocumentFormat.OpenXml.InkML;
 
 namespace AngularAuthAPI.Controllers
 {
@@ -61,7 +62,6 @@ namespace AngularAuthAPI.Controllers
         {
             if (userRegisterObj == null)
                 return BadRequest();
-            //Check Email
             if (await CheckEmailExistAsync(userRegisterObj.Email))
                 return BadRequest(new { Message = "Email already exists!" });
 
@@ -74,7 +74,8 @@ namespace AngularAuthAPI.Controllers
                 Facultate = userRegisterObj.Facultate,
                 Specializare = userRegisterObj.Specializare,
                 Role = userRegisterObj.Role,
-                Token = ""
+                Token = "",
+                An= ""
             };
 
             await _authContext.Users.AddAsync(userObj);
@@ -173,5 +174,23 @@ namespace AngularAuthAPI.Controllers
                 RefreshToken = newRefreshToken,
             });
         }
+
+       
+        [HttpGet("details/{email}")]
+        public async Task<IActionResult> GetUserDetailsByEmail(string email)
+        {
+            var user = await _authContext.Users
+                .Where(u => u.Email == email)
+                .Select(u => new { u.userID, u.Facultate, u.An })
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                return NotFound(new { Message = "User not found." });
+            }
+
+            return Ok(user);
+        }
+
     }
 }

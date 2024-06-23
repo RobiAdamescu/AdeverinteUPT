@@ -22,6 +22,60 @@ namespace AngularAuthAPI.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("AngularAuthAPI.Models.StudentResponse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("An")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Facultate")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ResponseDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Responses")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("StudentID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TemplateID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TemplateName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentID");
+
+                    b.HasIndex("TemplateID");
+
+                    b.ToTable("student_responses", (string)null);
+                });
+
             modelBuilder.Entity("AngularAuthAPI.Models.Template", b =>
                 {
                     b.Property<int>("templateID")
@@ -65,6 +119,10 @@ namespace AngularAuthAPI.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("userID"));
 
+                    b.Property<string>("An")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
@@ -97,6 +155,25 @@ namespace AngularAuthAPI.Migrations
                     b.HasKey("userID");
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("AngularAuthAPI.Models.StudentResponse", b =>
+                {
+                    b.HasOne("AngularAuthAPI.Models.User", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AngularAuthAPI.Models.Template", "Template")
+                        .WithMany()
+                        .HasForeignKey("TemplateID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Template");
                 });
 #pragma warning restore 612, 618
         }
