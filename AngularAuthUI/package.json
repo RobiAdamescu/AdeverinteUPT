@@ -19,7 +19,7 @@
     "@angular/platform-browser-dynamic": "^17.0.0",
     "@angular/platform-server": "^17.0.0",
     "@angular/router": "^17.0.0",
-    "@angular/ssr": "^17.0.0",
+    "@angular/ssr": "^19.2.21",
     "@auth0/angular-jwt": "^5.2.0",
     "@types/pizzip": "^3.0.5",
     "docxtemplater": "^3.47.4",
